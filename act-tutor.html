@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACT Tutor — Personalized Learning</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F4EE;
+    --warm-white: #FDFBF8;
+    --ink: #1C1917;
+    --ink-soft: #44403C;
+    --ink-muted: #78716C;
+    --ink-faint: #A8A29E;
+    --accent: #2D6A4F;
+    --accent-light: #D8F3E8;
+    --accent-mid: #52B788;
+    --gold: #B45309;
+    --gold-light: #FEF3C7;
+    --border: rgba(28,25,23,0.1);
+    --border-soft: rgba(28,25,23,0.06);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 280px; min-width: 280px;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 2rem 1.5rem;
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; height: 100vh;
+    overflow-y: auto;
+  }
+  .main { margin-left: 280px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Sidebar */
+  .logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--cream); margin-bottom: 2rem; line-height: 1.2; }
+  .logo span { color: var(--accent-mid); font-style: italic; }
+  .sidebar-section { margin-bottom: 2rem; }
+  .sidebar-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px; font-weight: 500; }
+  .stat-card { background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--cream); }
+  .stat-lbl { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+  .badge-pill { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .sidebar-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--ink-faint); }
+  .new-session-btn {
+    margin-top: auto; width: 100%;
+    background: transparent; border: 1px solid rgba(255,255,255,0.15);
+    color: var(--cream); border-radius: var(--radius-sm);
+    padding: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .new-session-btn:hover { background: rgba(255,255,255,0.08); }
+
+  /* Top bar */
+  .topbar {
+    background: var(--warm-white); border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--ink); }
+  .progress-wrap { display: flex; align-items: center; gap: 10px; }
+  .progress-bar { width: 120px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent-mid); border-radius: 3px; transition: width 0.4s; }
+  .progress-lbl { font-size: 12px; color: var(--ink-muted); }
+
+  /* Content area */
+  .content { flex: 1; padding: 2rem; max-width: 800px; width: 100%; margin: 0 auto; }
+
+  /* Setup */
+  .setup-card {
+    background: var(--warm-white); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 2rem; margin-bottom: 1.5rem;
+  }
+  .setup-card h2 { font-family: 'DM Serif Display', serif; font-size: 26px; margin-bottom: 6px; }
+  .setup-card p { color: var(--ink-soft); font-size: 15px; margin-bottom: 1.5rem; }
+  .step-dots { display: flex; gap: 6px; margin-bottom: 2rem; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.2s; }
+  .step-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+  .step-dot.done { background: var(--accent-mid); }
+
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 7px 16px; font-size: 13px; cursor: pointer;
+    background: transparent; color: var(--ink-soft);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--accent-mid); color: var(--accent); }
+  .chip.selected { background: var(--accent-light); color: var(--accent); border-color: var(--accent-mid); font-weight: 500; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group label { font-size: 12px; color: var(--ink-muted); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: 0.04em; }
+  select, input[type=text], input[type=password] {
+    width: 100%; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 9px 12px;
+    font-size: 14px; background: var(--cream);
+    color: var(--ink); font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--accent-mid); }
+
+  .btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+  .btn {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--ink-soft);
+    padding: 9px 20px; font-size: 14px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .btn:hover { background: var(--border-soft); }
+  .btn-primary {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+    font-weight: 500;
+  }
+  .btn-primary:hover { background: var(--accent-mid); border-color: var(--accent-mid); }
+
+  /* API key notice */
+  .api-notice {
+    background: var(--gold-light); border: 1px solid rgba(180,83,9,0.2);
+    border-radius: var(--radius-sm); padding: 14px 16px;
+    font-size: 13px; color: var(--gold); margin-bottom: 1.5rem;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .api-notice strong { display: block; margin-bottom: 4px; }
+
+  /* Chat */
+  .chat-wrap { display: flex; flex-direction: column; gap: 0; }
+  .msg { margin-bottom: 20px; display: flex; gap: 12px; }
+  .msg.user { flex-direction: row-reverse; }
+  .avatar {
+    width: 34px; height: 34px; min-width: 34px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .avatar.tutor { background: var(--accent-light); color: var(--accent); }
+  .avatar.user { background: var(--ink); color: var(--cream); }
+  .bubble {
+    max-width: 78%; padding: 12px 16px; border-radius: var(--radius);
+    font-size: 14px; line-height: 1.75; color: var(--ink);
+  }
+  .bubble.tutor { background: var(--warm-white); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .bubble.user { background: var(--accent); color: #fff; border-top-right-radius: 4px; }
+  .bubble p { margin-bottom: 8px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble strong { font-weight: 600; }
+  .bubble em { font-style: italic; }
+  .bubble code { background: rgba(0,0,0,0.07); padding: 1px 5px; border-radius: 3px; font-size: 13px; font-family: monospace; }
+  .bubble.user code { background: rgba(255,255,255,0.2); }
+
+  /* Input area */
+  .input-area {
+    position: sticky; bottom: 0;
+    background: var(--warm-white); border-top: 1px solid var(--border);
+    padding: 1rem 2rem; margin: 0 -2rem;
+  }
+  .input-inner { max-width: 800px; margin: 0 auto; }
+  .quick-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .quick-chip {
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 12px; color: var(--ink-soft); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .quick-chip:hover { border-color: var(--accent-mid); color: var(--accent); background: var(--accent-light); }
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px 14px; font-size: 14px; line-height: 1.5;
+    font-family: 'DM Sans', sans-serif; color: var(--ink);
+    background: var(--cream); resize: none; height: 52px;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent-mid); }
+  .send-btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 0 20px; height: 52px;
+    font-size: 16px; cursor: pointer; transition: background 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .send-btn:hover { background: var(--accent-mid); }
+
+  /* Loading dots */
+  .dots { display: inline-flex; gap: 4px; align-items: center; height: 20px; }
+  .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); animation: pulse 1.2s infinite; }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .form-grid { grid-template-columns: 1fr; }
+    .content { padding: 1rem; }
+    .input-area { padding: 1rem; margin: 0 -1rem; }
+    .topbar { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">ACT<br><span>Tutor</span></div>
+
+    <div class="sidebar-section" id="sb-section" style="display:none;">
+      <div class="sidebar-label">Today's session</div>
+      <div class="stat-card">
+        <div class="stat-val" id="sb-section-val">—</div>
+        <div class="stat-lbl">Focus section</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="sb-score-val">—</div>
+        <div class="stat-lbl">Target score</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" id="sb-support" style="display:none;">
+      <div class="sidebar-label">Support mode</div>
+      <div class="sidebar-tags" id="sb-tags"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tips for best results</div>
+      <div style="font-size:12px;color:var(--ink-faint);line-height:1.7;">
+        • Start a new chat for each study session<br>
+        • Use quick-reply buttons to save time<br>
+        • Ask for examples whenever stuck<br>
+        • Study off-peak hours for faster responses
+      </div>
+    </div>
+
+    <button class="new-session-btn" id="new-session-btn" onclick="resetApp()" style="display:none;">↺ New session</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Setup your session</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="progress-lbl" id="progress-lbl">Not started</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Setup view -->
+      <div id="setup-view">
+        <div class="setup-card">
+          <div class="step-dots">
+            <div class="step-dot active" id="dot1"></div>
+            <div class="step-dot" id="dot2"></div>
+            <div class="step-dot" id="dot3"></div>
+            <div class="step-dot" id="dot4"></div>
+          </div>
+
+          <!-- Step 1 -->
+          <div id="step1">
+            <h2>Which section?</h2>
+            <p>Pick the ACT section you want to focus on today.</p>
+            <div class="chip-grid" id="section-chips">
+              <button class="chip" onclick="pick(this,'section')">English</button>
+              <button class="chip" onclick="pick(this,'section')">Math</button>
+              <button class="chip" onclick="pick(this,'section')">Reading</button>
+              <button class="chip" onclick="pick(this,'section')">Science</button>
+              <button class="chip" onclick="pick(this,'section')">Full test prep</button>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div id="step2" class="hidden">
+            <h2>Your goals</h2>
+            <p>Helps the tutor set the right pace and difficulty for you.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Target score</label>
+                <select id="target-score">
+                  <option value="">Choose...</option>
+                  <option>18–20 (getting started)</option>
+                  <option>21–24 (building up)</option>
+                  <option>25–27 (solid score)</option>
+                  <option>28–30 (competitive)</option>
+                  <option>31–36 (top score)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Test date</label>
+                <select id="test-date">
+                  <option value="">Choose...</option>
+                  <option>Less than 1 month away</option>
+                  <option>1–2 months away</option>
+                  <option>2–3 months away</option>
+                  <option>3–6 months away</option>
+                  <option>More than 6 months away</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div id="step3" class="hidden">
+            <h2>How can I support you?</h2>
+            <p>Choose everything that fits — this shapes how the tutor teaches.</p>
+            <div class="chip-grid" id="support-chips">
+              <button class="chip" onclick="pick(this,'support')">Slow down for me</button>
+              <button class="chip" onclick="pick(this,'support')">Visual examples</button>
+              <button class="chip" onclick="pick(this,'support')">One step at a time</button>
+              <button class="chip" onclick="pick(this,'support')">Lots of encouragement</button>
+              <button class="chip" onclick="pick(this,'support')">Short summaries</button>
+              <button class="chip" onclick="pick(this,'support')">Repeat key ideas</button>
+              <button class="chip" onclick="pick(this,'support')">I get distracted easily</button>
+              <button class="chip" onclick="pick(this,'support')">I need extra time to think</button>
+            </div>
+          </div>
+
+          <!-- Step 4: API key -->
+          <div id="step4" class="hidden">
+            <h2>Connect your API key</h2>
+            <p>To run outside Claude.ai, you need a free Anthropic API key. It costs a few cents per session.</p>
+            <div class="api-notice">
+              <span>ⓘ</span>
+              <div>
+                <strong>Get your key at console.anthropic.com</strong>
+                Sign in → API Keys → Create key. Your key is stored only in your browser and never sent anywhere except Anthropic's servers.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Anthropic API key</label>
+              <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn hidden" id="back-btn" onclick="prevStep()">← Back</button>
+            <button class="btn btn-primary" id="next-btn" onclick="nextStep()">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat view -->
+      <div id="chat-view" class="hidden">
+        <div class="chat-wrap" id="chat-wrap"></div>
+        <div style="height: 140px;"></div>
+
+        <div class="input-area">
+          <div class="input-inner">
+            <div class="quick-row" id="quick-row"></div>
+            <div class="input-row">
+              <textarea id="user-input" placeholder="Type your answer or question here... (Enter to send)" onkeydown="handleKey(event)"></textarea>
+              <button class="send-btn" onclick="sendMsg()">↗</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+let step = 1;
+let sel = { section:'', support:[], score:'', date:'', apiKey:'' };
+let history = [];
+let systemPrompt = '';
+let msgCount = 0;
+
+function pick(el, group) {
+  if (group === 'section') {
+    document.querySelectorAll('#section-chips .chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    sel.section = el.textContent;
+  } else {
+    el.classList.toggle('selected');
+    sel.support = [...document.querySelectorAll('#support-chips .chip.selected')].map(c => c.textContent);
+  }
+}
+
+function prevStep() {
+  if (step > 1) { step--; renderStep(); }
+}
+
+function nextStep() {
+  if (step === 1 && !sel.section) { alert('Please choose a section first!'); return; }
+  if (step === 4) { launch(); return; }
+  step++;
+  renderStep();
+}
+
+function renderStep() {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('step'+i).classList.toggle('hidden', i !== step);
+    const d = document.getElementById('dot'+i);
+    d.className = 'step-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  });
+  document.getElementById('back-btn').classList.toggle('hidden', step === 1);
+  document.getElementById('next-btn').textContent = step === 4 ? 'Start learning →' : 'Next →';
+}
+
+function launch() {
+  sel.score = document.getElementById('target-score').value || 'not specified';
+  sel.date = document.getElementById('test-date').value || 'not specified';
+  sel.apiKey = document.getElementById('api-key').value.trim();
+
+  systemPrompt = `You are an ACT tutor specializing in supporting students with slow processing speed, executive function challenges, and visual learning preferences. You are warm, patient, and deeply encouraging.
+
+STUDENT PROFILE:
+- Section focus: ${sel.section}
+- Target score: ${sel.score}
+- Test date: ${sel.date}
+- Support preferences: ${sel.support.length ? sel.support.join(', ') : 'general support'}
+
+CORE TEACHING RULES:
+1. Break ALL explanations into small numbered steps. Never give more than one concept at a time.
+2. Use visual metaphors, tables, and ASCII-style diagrams often.
+3. After every explanation, ask ONE gentle check-in question before moving on.
+4. If the student struggles, say "Let's try a different angle" and reteach using a simpler approach.
+5. End every major explanation with a short SUMMARY (3 bullets max).
+6. Celebrate effort and progress with specific, warm praise.
+7. Normalize mistakes: "That's a really common mix-up — here's how to tell them apart."
+8. Give one instruction at a time. Never stack multiple questions.
+9. Use spacing and structure (numbered lists, short paragraphs) to reduce cognitive load.
+10. Always show an EXAMPLE before asking the student to try something.
+11. For practice: start easy, build gradually. Ask "What's your thinking?" before revealing answers.
+12. Use spaced repetition — revisit earlier concepts periodically.
+
+START: Greet the student warmly. Share a clear, numbered 3-step plan for today's session. Keep it short and encouraging.`;
+
+  document.getElementById('setup-view').classList.add('hidden');
+  document.getElementById('chat-view').classList.remove('hidden');
+  document.getElementById('topbar-title').textContent = sel.section + ' session';
+  document.getElementById('new-session-btn').style.display = 'block';
+
+  // Sidebar
+  document.getElementById('sb-section').style.display = 'block';
+  document.getElementById('sb-support').style.display = 'block';
+  document.getElementById('sb-section-val').textContent = sel.section;
+  document.getElementById('sb-score-val').textContent = sel.score.split(' ')[0] || '—';
+  const tagsEl = document.getElementById('sb-tags');
+  tagsEl.innerHTML = '';
+  (sel.support.length ? sel.support : ['General support']).forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'tag';
+    span.textContent = t;
+    tagsEl.appendChild(span);
+  });
+
+  addMsg('tutor', null, true);
+  callAPI([{role:'user', content:'Start the session.'}]);
+}
+
+function addMsg(role, text, loading) {
+  const wrap = document.getElementById('chat-wrap');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const initials = role === 'tutor' ? '🎓' : 'You';
+  div.innerHTML = `
+    <div class="avatar ${role}">${initials}</div>
+    <div class="bubble ${role}" id="${loading ? 'loading-bubble' : ''}">${loading ? '<div class="dots"><span></span><span></span><span></span></div>' : fmt(text)}</div>
+  `;
+  wrap.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return div;
+}
+
+function fmt(text) {
+  if (!text) return '';
+  return '<p>' + text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n\n+/g, '</p><p>')
+    .replace(/\n/g, '<br>') + '</p>';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function sendMsg() {
+  const inp = document.getElementById('user-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  document.getElementById('quick-row').innerHTML = '';
+  addMsg('user', txt);
+  history.push({role:'user', content: txt});
+  addMsg('tutor', null, true);
+  msgCount++;
+  updateProgress();
+  callAPI(history);
+}
+
+async function callAPI(messages) {
+  const endpoint = 'https://api.anthropic.com/v1/messages';
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': sel.apiKey,
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.map(b => b.text||'').join('') || 'Something went wrong — please try again.';
+
+    const lb = document.getElementById('loading-bubble');
+    if (lb) lb.closest('.msg').remove();
+
+    addMsg('tutor', reply);
+    history.push({role:'assistant', content: reply});
+    showQuickBtns(reply);
+    updateProgress();
+  } catch(e) {
+    const lb = document.getElementById('loading-bubble');
+    if (lb) lb.closest('.msg').remove();
+    addMsg('tutor', 'Connection error. Check your API key and try again.');
+  }
+}
+
+function showQuickBtns(reply) {
+  const row = document.getElementById('quick-row');
+  row.innerHTML = '';
+  const opts = [];
+  if (reply.includes('?')) opts.push("I'm not sure — explain more?");
+  opts.push("Show me an example");
+  opts.push("Give me a practice question");
+  if (history.length > 6) opts.push("Review what we covered");
+  opts.slice(0,3).forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'quick-chip';
+    b.textContent = o;
+    b.onclick = () => { document.getElementById('user-input').value = o; sendMsg(); };
+    row.appendChild(b);
+  });
+}
+
+function updateProgress() {
+  const pct = Math.min(msgCount * 7, 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  const labels = ['Getting started','Warming up!','Building momentum!','Great progress!','Strong session!'];
+  document.getElementById('progress-lbl').textContent = labels[Math.min(Math.floor(msgCount/3), labels.length-1)];
+}
+
+function resetApp() {
+  history = []; msgCount = 0; step = 1;
+  sel = { section:'', support:[], score:'', date:'', apiKey: sel.apiKey };
+  document.getElementById('chat-view').classList.add('hidden');
+  document.getElementById('setup-view').classList.remove('hidden');
+  document.getElementById('chat-wrap').innerHTML = '';
+  document.getElementById('topbar-title').textContent = 'Setup your session';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('progress-lbl').textContent = 'Not started';
+  document.getElementById('sb-section').style.display = 'none';
+  document.getElementById('sb-support').style.display = 'none';
+  document.getElementById('new-session-btn').style.display = 'none';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  renderStep();
+}
+</script>
+</body>
+</html>
